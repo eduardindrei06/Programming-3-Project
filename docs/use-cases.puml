@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+actor User
+rectangle "Activa 0.1 mid-term console" {
+  usecase "Register account" as Register
+  usecase "Log in" as Login
+  usecase "Log out" as Logout
+  usecase "Add activity" as Add
+  usecase "View own activities" as View
+  usecase "Edit own activity" as Edit
+  usecase "Delete own activity" as Delete
+  usecase "Set daily goal" as Goal
+  usecase "View daily progress" as Progress
+  usecase "View current / longest streak" as Streak
+  usecase "View points and virtual badges" as Rewards
+  usecase "View weekly statistics" as Stats
+}
+User --> Register
+User --> Login
+User --> Logout
+User --> Add
+User --> View
+User --> Edit
+User --> Delete
+User --> Goal
+User --> Progress
+User --> Streak
+User --> Rewards
+User --> Stats
+note right of View
+All fitness actions require a logged-in account.
+Each account accesses only its own records.
+end note
+@enduml

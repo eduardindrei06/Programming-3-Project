@@ -1,0 +1,137 @@
+@startuml
+hide empty members
+skinparam classAttributeIconSize 0
+interface PointAwardable {
+  +calculatePoints(): long
+}
+interface GoalEvaluable {
+  +isComplete(steps: long, minutes: long): boolean
+}
+class User {
+  -id: UUID
+  -username: String
+  -email: String
+  -passwordHash: String
+  -totalPoints: long
+  +setTotalPoints(points: long): void
+}
+class Activity {
+  -id: UUID
+  -userId: UUID
+  -type: ActivityType
+  -date: LocalDate
+  -durationMinutes: int
+  -steps: int
+  -distanceKm: double
+  +calculatePoints(): long
+}
+enum ActivityType {
+  WALKING
+  RUNNING
+  WORKOUT
+}
+class DailyGoal {
+  -id: UUID
+  -userId: UUID
+  -effectiveDate: LocalDate
+  -targetSteps: int
+  -targetMinutes: int
+  +isComplete(steps: long, minutes: long): boolean
+}
+class Streak {
+  -userId: UUID
+  -currentStreak: int
+  -longestStreak: int
+}
+class Reward <<record>> {
+  -id: int
+  -name: String
+  -pointsRequired: long
+}
+Activity ..|> PointAwardable
+DailyGoal ..|> GoalEvaluable
+User "1" -- "0..*" Activity : owns (userId)
+User "1" -- "0..*" DailyGoal : owns goal versions (userId)
+User "1" -- "1" Streak : derived per user
+User "0..*" -- "0..*" Reward : qualifies by points (derived)
+Activity --> ActivityType
+note bottom of Streak
+Identity is userId; derived, not persisted.
+Unique active dates determine streak lengths.
+end note
+note bottom of DailyGoal
+Latest effectiveDate <= activity date applies.
+One version per user per effectiveDate.
+end note
+package "Supporting implementation" {
+  class Main
+  class ConsoleUi {
+    -service: ActivaService
+    -input: Scanner
+    +run(): void
+  }
+  class ActivaService {
+    -store: FileStore
+    -clock: Clock
+    -data: AppData
+    -currentUserId: UUID
+    -{static} CATALOG: List<Reward>
+    +register(username, email, password): User
+    +login(username, password): void
+    +logout(): void
+    +activities(): List<Activity>
+    +saveActivity(id, type, date, minutes, steps, km): Activity
+    +deleteActivity(id): void
+    +setGoal(steps, minutes): void
+    +goalOn(date): Optional<DailyGoal>
+    +stepsOn(date): long
+    +minutesOn(date): long
+    +streak(): Streak
+    +rewards(): List<Reward>
+  }
+  class AppData {
+    +users: HashMap<UUID, User>
+    +activities: ArrayList<Activity>
+    +goals: ArrayList<DailyGoal>
+    +copy(): AppData
+  }
+  class FileStore {
+    -file: Path
+    +load(): AppData
+    +save(data: AppData): void
+  }
+  class PasswordHasher {
+    -{static} ITERATIONS: int = 210000
+    +{static} hash(password: char[]): String
+    +{static} matches(password: char[], encoded: String): boolean
+  }
+  class AccountException
+  class InvalidActivityException
+  class Exception <<Java standard>>
+}
+Main ..> ConsoleUi
+Main ..> ActivaService
+Main ..> FileStore
+ConsoleUi --> ActivaService
+ActivaService --> FileStore
+ActivaService *-- AppData
+AppData o-- User
+AppData o-- Activity
+AppData o-- DailyGoal
+ActivaService ..> PointAwardable
+ActivaService ..> GoalEvaluable
+ActivaService ..> PasswordHasher
+ActivaService ..> Streak
+ActivaService ..> Reward
+ActivaService ..> AccountException : throws
+ActivaService ..> InvalidActivityException : throws
+Activity ..> InvalidActivityException : throws
+ConsoleUi ..> AccountException : catches
+ConsoleUi ..> InvalidActivityException : catches
+Exception <|-- AccountException
+Exception <|-- InvalidActivityException
+note bottom
+Domain fields and key operations are shown; constructors and ordinary getters are omitted.
+No entity inheritance is needed; dashed realization arrows show interface implementations.
+end note
+@enduml
